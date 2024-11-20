@@ -4,10 +4,10 @@ metadata:
   name: enforce-allowed-capabilities
 spec:
   enforcementAction: dryrun
-  parameters:
-    allowedCapabilities:
-      - "NET_BIND_SERVICE"
   match:
     kinds:
       - apiGroups: [""]
         kinds: ["Pod"]
+  parameters:
+    allowedCapabilities:
+      - "NET_BIND_SERVICE"

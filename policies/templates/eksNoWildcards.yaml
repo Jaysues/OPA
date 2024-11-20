@@ -1,0 +1,29 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksnowildcards
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksNoWildcards
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksnowildcards
+
+        violation[{"msg": msg}] {
+          rule := input.review.object.rules[_]
+          resource := rule.resources[_]
+          resource == "*"
+          msg := sprintf("Role '%s' uses wildcard in resources.", [input.review.object.metadata.name])
+        }
+
+        violation[{"msg": msg}] {
+          rule := input.review.object.rules[_]
+          verb := rule.verbs[_]
+          verb == "*"
+          msg := sprintf("Role '%s' uses wildcard in verbs.", [input.review.object.metadata.name])
+        }
+
+

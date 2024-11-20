@@ -12,10 +12,13 @@ spec:
       rego: |
         package eksforbiddensysctleffect
 
-        forbidden_sysctls := input.parameters.forbiddenSysctls
-
         violation[{"msg": msg}] {
           sysctl := input.review.object.spec.securityContext.sysctls[_]
-          sysctl.name in forbidden_sysctls
-          msg := sprintf("Pod '%s' sets forbidden sysctl '%s'.", [input.review.object.metadata.name, sysctl.name])
+          sysctl_in_forbidden_list(sysctl.name)
+          msg := sprintf("Sysctl '%s' is forbidden.", [sysctl.name])
         }
+
+        sysctl_in_forbidden_list(name) {
+          name == input.parameters.forbiddenSysctls[_]
+        }
+

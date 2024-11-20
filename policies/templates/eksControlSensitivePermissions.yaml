@@ -12,13 +12,10 @@ spec:
       rego: |
         package ekscontrolsensitivepermissions
 
-        sensitive_verbs := ["bind", "impersonate", "escalate"]
-
         violation[{"msg": msg}] {
-          role := input.review.object
-          rule := role.rules[_]
-          verb := rule.verbs[_]
-          verb in sensitive_verbs
-
-          msg := sprintf("Role '%s' must not grant sensitive verb '%s'.", [role.metadata.name, verb])
+          rule := input.review.object.rules[_]
+          verb := ["bind", "impersonate", "escalate"][_]
+          verb_in_rule := rule.verbs[_] == verb
+          verb_in_rule
+          msg := sprintf("Role '%s' uses sensitive verb '%s'.", [input.review.object.metadata.name, verb])
         }
