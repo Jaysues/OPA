@@ -1,0 +1,10 @@
+# pod-in-unprotected-namespace.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-in-unprotected-namespace
+  namespace: unprotected-namespace
+spec:
+  containers:
+    - name: nginx
+      image: nginx

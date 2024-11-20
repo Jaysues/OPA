@@ -1,0 +1,10 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksBlockDefaultNamespace
+metadata:
+  name: prevent-default-namespace-use
+spec:
+  enforcementAction: dryrun
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod", "Deployment", "Service", "ConfigMap", "Secret"]

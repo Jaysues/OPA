@@ -1,0 +1,28 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: ekspsphostnamespace
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksPSPHostNamespace
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ekspsphostnamespace
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostPID == true
+          msg := sprintf("Pod '%s' must not share the host's PID namespace.", [input.review.object.metadata.name])
+        }
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostIPC == true
+          msg := sprintf("Pod '%s' must not share the host's IPC namespace.", [input.review.object.metadata.name])
+        }
+
+        violation[{"msg": msg}] {
+          input.review.object.spec.hostNetwork == true
+          msg := sprintf("Pod '%s' must not share the host's network namespace.", [input.review.object.metadata.name])
+        }

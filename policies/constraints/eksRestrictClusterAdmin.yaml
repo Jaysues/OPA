@@ -1,0 +1,14 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksRestrictClusterAdmin
+metadata:
+  name: restrict-cluster-admin-binding
+spec:
+  enforcementAction: dryrun
+  parameters:
+    allowedSubjects:
+      - "admin-user"
+      - "system:serviceaccount:kube-system:admin-sa"
+  match:
+    kinds:
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        kinds: ["ClusterRoleBinding"]

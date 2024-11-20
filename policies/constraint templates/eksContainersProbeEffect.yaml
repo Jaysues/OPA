@@ -1,0 +1,25 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: ekscontainersprobeeffect
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksContainersProbeEffect
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ekscontainersprobeeffect
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.livenessProbe
+          msg := sprintf("Container '%s' in Pod '%s' must have a livenessProbe.", [container.name, input.review.object.metadata.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.readinessProbe
+          msg := sprintf("Container '%s' in Pod '%s' must have a readinessProbe.", [container.name, input.review.object.metadata.name])
+        }

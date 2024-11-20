@@ -1,0 +1,10 @@
+# wildcard-role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: wildcard-role
+  namespace: default
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]

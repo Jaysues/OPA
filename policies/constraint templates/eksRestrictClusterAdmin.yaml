@@ -1,0 +1,26 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksrestrictclusteradmin
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksRestrictClusterAdmin
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksrestrictclusteradmin
+
+        allowed_subjects := input.parameters.allowedSubjects
+
+        violation[{"msg": msg}] {
+          binding := input.review.object
+          binding.roleRef.kind == "ClusterRole"
+          binding.roleRef.name == "cluster-admin"
+
+          subject := binding.subjects[_]
+          not subject.name in allowed_subjects
+
+          msg := sprintf("ClusterRoleBinding '%s' binds 'cluster-admin' to unauthorized subject '%s'.", [binding.metadata.name, subject.name])
+        }

@@ -1,0 +1,18 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksblockdefaultnamespace
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksBlockDefaultNamespace
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksblockdefaultnamespace
+
+        violation[{"msg": msg}] {
+          input.review.object.metadata.namespace == "default"
+          msg := sprintf("Resource '%s' must not be created in the 'default' namespace.", [input.review.object.metadata.name])
+        }

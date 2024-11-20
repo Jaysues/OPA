@@ -1,0 +1,11 @@
+# readwrite-filesystem-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: readwrite-filesystem-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      securityContext:
+        readOnlyRootFilesystem: false  # or omit this field

@@ -1,0 +1,20 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksallowedcapabilitieseffect
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksAllowedCapabilitiesEffect
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksallowedcapabilitieseffect
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          add_cap := container.securityContext.capabilities.add[_]
+          not add_cap in input.parameters.allowedCapabilities
+          msg := sprintf("Container '%s' in Pod '%s' adds disallowed capability '%s'.", [container.name, input.review.object.metadata.name, add_cap])
+        }

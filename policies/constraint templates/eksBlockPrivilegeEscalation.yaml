@@ -1,0 +1,19 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksblockprivilegeescalation
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksBlockPrivilegeEscalation
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksblockprivilegeescalation
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          container.securityContext.allowPrivilegeEscalation == true
+          msg := sprintf("Container '%s' in Pod '%s' must not allow privilege escalation.", [container.name, input.review.object.metadata.name])
+        }

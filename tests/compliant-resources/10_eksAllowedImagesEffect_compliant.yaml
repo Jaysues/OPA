@@ -1,0 +1,9 @@
+# approved-image-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: approved-image-pod
+spec:
+  containers:
+    - name: nginx
+      image: hub.docker.com/library/nginx

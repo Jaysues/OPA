@@ -1,0 +1,25 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksresourcelimits
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksResourceLimits
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksresourcelimits
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits.cpu
+          msg := sprintf("Container '%s' in Pod '%s' must set CPU limits.", [container.name, input.review.object.metadata.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.resources.limits.memory
+          msg := sprintf("Container '%s' in Pod '%s' must set memory limits.", [container.name, input.review.object.metadata.name])
+        }

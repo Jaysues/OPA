@@ -1,0 +1,10 @@
+# no-resource-limits-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-resource-limits-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      # No resources specified

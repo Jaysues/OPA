@@ -1,0 +1,9 @@
+# unapproved-image-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: unapproved-image-pod
+spec:
+  containers:
+    - name: nginx
+      image: docker.io/library/nginx

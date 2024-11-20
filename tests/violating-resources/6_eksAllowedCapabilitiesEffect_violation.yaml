@@ -1,0 +1,13 @@
+# disallowed-capabilities-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: disallowed-capabilities-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      securityContext:
+        capabilities:
+          add:
+            - SYS_ADMIN

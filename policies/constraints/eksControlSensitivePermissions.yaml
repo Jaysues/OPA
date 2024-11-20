@@ -1,0 +1,10 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksControlSensitivePermissions
+metadata:
+  name: prevent-sensitive-rbac-verbs
+spec:
+  enforcementAction: dryrun
+  match:
+    kinds:
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        kinds: ["Role", "ClusterRole"]

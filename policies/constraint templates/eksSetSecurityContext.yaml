@@ -1,0 +1,24 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: ekssetsecuritycontext
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksSetSecurityContext
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ekssetsecuritycontext
+
+        violation[{"msg": msg}] {
+          not input.review.object.spec.securityContext
+          msg := sprintf("Pod '%s' must have a securityContext defined.", [input.review.object.metadata.name])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.securityContext
+          msg := sprintf("Container '%s' in Pod '%s' must have a securityContext defined.", [container.name, input.review.object.metadata.name])
+        }

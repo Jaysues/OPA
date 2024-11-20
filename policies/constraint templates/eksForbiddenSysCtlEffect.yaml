@@ -1,0 +1,21 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksforbiddensysctleffect
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksForbiddenSysCtlEffect
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksforbiddensysctleffect
+
+        forbidden_sysctls := input.parameters.forbiddenSysctls
+
+        violation[{"msg": msg}] {
+          sysctl := input.review.object.spec.securityContext.sysctls[_]
+          sysctl.name in forbidden_sysctls
+          msg := sprintf("Pod '%s' sets forbidden sysctl '%s'.", [input.review.object.metadata.name, sysctl.name])
+        }

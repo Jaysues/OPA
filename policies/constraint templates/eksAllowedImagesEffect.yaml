@@ -1,0 +1,28 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksallowedimageseffect
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksAllowedImagesEffect
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksallowedimageseffect
+
+        allowed_registries := input.parameters.allowedRegistries
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          image := container.image
+          satisfied := false
+          registry := split(image, "/")[0]
+
+          allowed_registries[_] == registry
+          satisfied = true
+
+          not satisfied
+          msg := sprintf("Container '%s' in Pod '%s' uses an unapproved registry '%s'.", [container.name, input.review.object.metadata.name, registry])
+        }

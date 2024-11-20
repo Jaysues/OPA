@@ -1,0 +1,24 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksnowildcards
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksNoWildcards
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksnowildcards
+
+        violation[{"msg": msg}] {
+          role := input.review.object
+          rule := role.rules[_]
+          wildcard_in_resources := rule.resources[_] == "*"
+          wildcard_in_verbs := rule.verbs[_] == "*"
+
+          wildcard_in_resources or wildcard_in_verbs
+
+          msg := sprintf("Role '%s' must not contain wildcards in resources or verbs.", [role.metadata.name])
+        }

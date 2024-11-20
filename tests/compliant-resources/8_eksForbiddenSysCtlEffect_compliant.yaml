@@ -1,0 +1,13 @@
+# allowed-sysctl-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: allowed-sysctl-pod
+spec:
+  securityContext:
+    sysctls:
+      - name: net.core.somaxconn
+        value: "1024"
+  containers:
+    - name: nginx
+      image: nginx

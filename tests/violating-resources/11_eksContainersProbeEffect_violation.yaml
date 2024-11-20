@@ -1,0 +1,10 @@
+# no-probes-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-probes-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      # No livenessProbe or readinessProbe

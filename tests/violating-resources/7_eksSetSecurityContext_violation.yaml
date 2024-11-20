@@ -1,0 +1,10 @@
+# no-security-context-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-security-context-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      # No securityContext defined

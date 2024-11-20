@@ -1,0 +1,13 @@
+# with-security-context-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-security-context-pod
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: nginx
+      image: nginx
+      securityContext:
+        runAsNonRoot: true

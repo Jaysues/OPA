@@ -1,0 +1,14 @@
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksForbiddenSysCtlEffect
+metadata:
+  name: prevent-forbidden-sysctls
+spec:
+  enforcementAction: dryrun
+  parameters:
+    forbiddenSysctls:
+      - "net.ipv4.ip_forward"
+      - "net.ipv4.tcp_syncookies"
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]

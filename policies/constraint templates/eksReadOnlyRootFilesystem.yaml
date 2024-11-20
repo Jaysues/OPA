@@ -1,0 +1,19 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksreadonlyrootfilesystem
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksReadOnlyRootFilesystem
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksreadonlyrootfilesystem
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.securityContext.readOnlyRootFilesystem == true
+          msg := sprintf("Container '%s' in Pod '%s' must have readOnlyRootFilesystem set to true.", [container.name, input.review.object.metadata.name])
+        }

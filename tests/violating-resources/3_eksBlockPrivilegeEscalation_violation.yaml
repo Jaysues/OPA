@@ -1,0 +1,11 @@
+# allow-privilege-escalation-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: allow-privilege-escalation-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      securityContext:
+        allowPrivilegeEscalation: true

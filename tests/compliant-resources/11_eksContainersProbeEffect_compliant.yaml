@@ -1,0 +1,17 @@
+# with-probes-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: with-probes-pod
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 80
+      readinessProbe:
+        httpGet:
+          path: /
+          port: 80

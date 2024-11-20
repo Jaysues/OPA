@@ -1,0 +1,15 @@
+# pod-in-custom-namespace.yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: custom-namespace
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: custom-namespace-pod
+  namespace: custom-namespace
+spec:
+  containers:
+    - name: nginx
+      image: nginx

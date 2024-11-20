@@ -1,0 +1,21 @@
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksnetpolenforce
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksNetPolEnforce
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksnetpolenforce
+
+        violation[{"msg": msg}] {
+          namespace := input.review.object.metadata.namespace
+          netpols := data.inventory.namespace[namespace].networking.k8s.io.v1.NetworkPolicy
+
+          count(netpols) == 0
+          msg := sprintf("Namespace '%s' must have at least one NetworkPolicy.", [namespace])
+        }

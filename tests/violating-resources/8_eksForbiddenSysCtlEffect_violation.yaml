@@ -1,0 +1,13 @@
+# forbidden-sysctl-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: forbidden-sysctl-pod
+spec:
+  securityContext:
+    sysctls:
+      - name: net.ipv4.ip_forward
+        value: "1"
+  containers:
+    - name: nginx
+      image: nginx
