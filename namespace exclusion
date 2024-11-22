@@ -1,0 +1,97 @@
+# Define namespaces to exclude
+EXCLUDED_NAMESPACES=(
+  "amazon-cloudwatch"
+  "aws-for-fluent-bit"
+  "calico-apiserver"
+  "calico-system"
+  "gatekeeper-system"
+  "karpenter"
+  "kube-system"
+  "secrets-store-csi-driver"
+  "tigera-operator"
+  "cert-manager"
+  "brupop-bottlerocket-aws"
+  "amazon-guardduty"
+)
+
+
+
+
+prepare_policies() {
+    local policy_base_dir="${PWD}/opa-policies"
+    policy_temp_dir="${PWD}/temp_policies"
+
+    # Clean up any previous temp_policies directory
+    rm -rf "${policy_temp_dir}"
+
+    # Copy base policies to temp directory
+    mkdir -p "${policy_temp_dir}"
+    cp -R "${policy_base_dir}/." "${policy_temp_dir}/"
+
+    # Override policies with those from the appId folder if it exists
+    if [ -d "${policy_base_dir}/${appId}" ]; then
+        echo "Overriding policies with those from ${policy_base_dir}/${appId}"
+        # For each file in the appId folder
+        for file in "${policy_base_dir}/${appId}"/*; do
+            filename=$(basename "$file")
+            # Copy and overwrite matching files in temp_policies
+            cp "$file" "${policy_temp_dir}/${filename}"
+        done
+    fi
+
+    # Inject excludedNamespaces into each constraint file
+    inject_exclusions_into_constraints
+}
+
+
+
+
+
+
+inject_exclusions_into_constraints() {
+    echo "Injecting excludedNamespaces into constraints"
+
+    # Convert the EXCLUDED_NAMESPACES array to YAML list format
+    excluded_namespaces_yaml=$(printf -- "- %s\n" "${EXCLUDED_NAMESPACES[@]}")
+
+    # Find all constraint files in the temp_policies directory
+    find "${policy_temp_dir}" -name '*constraint.yaml' | while read -r constraint_file; do
+        echo "Processing ${constraint_file}"
+
+        # Check if the constraint file already has a match section
+        if grep -q "^\s*match:" "$constraint_file"; then
+            # Check if excludedNamespaces is already present
+            if grep -q "^\s*excludedNamespaces:" "$constraint_file"; then
+                echo "  excludedNamespaces already present in ${constraint_file}, updating the list"
+                # Remove existing excludedNamespaces section
+                sed -i '/^\s*excludedNamespaces:/,/^\s*[^- ]/d' "$constraint_file"
+            else
+                echo "  Adding excludedNamespaces to existing match section in ${constraint_file}"
+            fi
+
+            # Insert the excludedNamespaces after the match line
+            awk -v exclusions="$excluded_namespaces_yaml" '
+                /^(\s*)match:/ {
+                    print $0
+                    print gensub(/.*/, "\\1excludedNamespaces:", "g", $0)
+                    print gensub(/.*/, exclusions, "g", $0)
+                    next
+                }
+                { print $0 }
+            ' "$constraint_file" > "${constraint_file}.tmp" && mv "${constraint_file}.tmp" "$constraint_file"
+        else
+            echo "  Adding match section with excludedNamespaces to ${constraint_file}"
+            # Add the match section at the end of the spec
+            awk -v exclusions="$excluded_namespaces_yaml" '
+                /^(\s*)spec:/ {
+                    print $0
+                    print gensub(/.*/, "\\1match:", "g", $0)
+                    print gensub(/.*/, "\\1  excludedNamespaces:", "g", $0)
+                    print gensub(/.*/, exclusions, "g", $0)
+                    next
+                }
+                { print $0 }
+            ' "$constraint_file" > "${constraint_file}.tmp" && mv "${constraint_file}.tmp" "$constraint_file"
+        fi
+    done
+}
