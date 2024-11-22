@@ -104,6 +104,6 @@ check_violations
 
 # Cleanup resources (optional)
 # Uncomment the following line to automatically clean up after testing
-#cleanup
+cleanup
 
 echo "Testing completed."
