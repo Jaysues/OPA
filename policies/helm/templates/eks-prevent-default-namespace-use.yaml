@@ -1,0 +1,64 @@
+{{- if .Values.policies.preventDefaultNamespace.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksblockdefaultnamespace
+  annotations:
+    description: "{{ .Values.policies.preventDefaultNamespace.annotations.description }}"
+    standard: "{{ .Values.policies.preventDefaultNamespace.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventDefaultNamespace.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksBlockDefaultNamespace
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksblockdefaultnamespace
+
+        violation[{"msg": msg}] {
+          input.review.object.metadata.namespace == "default"
+          msg := sprintf("Resource '%s' should not be deployed in the 'default' namespace.", [input.review.object.metadata.name])
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksBlockDefaultNamespace
+metadata:
+  name: prevent-default-namespace-use
+  annotations:
+    description: "{{ .Values.policies.preventDefaultNamespace.annotations.description }}"
+    standard: "{{ .Values.policies.preventDefaultNamespace.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventDefaultNamespace.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: deny
+  match:
+    excludedNamespaces:
+      - kube-system
+      - amazon-cloudwatch
+      - gatekeeper-system
+      - amazon-guardduty
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod", "Service", "Deployment", "StatefulSet", "DaemonSet"]
+{{- end }}

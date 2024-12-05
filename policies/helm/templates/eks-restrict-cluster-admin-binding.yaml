@@ -1,0 +1,73 @@
+{{- if .Values.policies.restrictClusterAdminBinding.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksrestrictclusteradmin
+  annotations:
+    description: "{{ .Values.policies.restrictClusterAdminBinding.annotations.description }}"
+    standard: "{{ .Values.policies.restrictClusterAdminBinding.annotations.standard }}"
+    shortName: "{{ .Values.policies.restrictClusterAdminBinding.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksRestrictClusterAdmin
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksrestrictclusteradmin
+
+        violation[{"msg": msg}] {
+          binding := input.review.object
+          roleRef := binding.roleRef
+          roleRef.kind == "ClusterRole"
+          roleRef.name == "cluster-admin"
+
+          allowed_subjects := {{ toJson .Values.policies.restrictClusterAdminBinding.parameters.allowedSubjects }}
+          not subject_in_allowed_list(binding.subjects, allowed_subjects)
+
+          msg := sprintf("Binding '%s' binds 'cluster-admin' to unauthorized subjects.", [binding.metadata.name])
+        }
+
+        subject_in_allowed_list(subjects, allowed_subjects) {
+          subject := subjects[_]
+          subject.name == allowed_subjects[_]
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksRestrictClusterAdmin
+metadata:
+  name: restrict-cluster-admin-binding
+  annotations:
+    description: "{{ .Values.policies.restrictClusterAdminBinding.annotations.description }}"
+    standard: "{{ .Values.policies.restrictClusterAdminBinding.annotations.standard }}"
+    shortName: "{{ .Values.policies.restrictClusterAdminBinding.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    kinds:
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        kinds: ["ClusterRoleBinding"]
+  parameters:
+    allowedSubjects: {{ .Values.policies.restrictClusterAdminBinding.parameters.allowedSubjects | toJson }}
+{{- end }}

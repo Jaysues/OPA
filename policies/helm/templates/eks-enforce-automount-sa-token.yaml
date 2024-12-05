@@ -1,0 +1,65 @@
+{{- if .Values.policies.enforceAutomountServiceAccountToken.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksnoautomountserviceaccounttoken
+  annotations:
+    description: "{{ .Values.policies.enforceAutomountServiceAccountToken.annotations.description }}"
+    standard: "{{ .Values.policies.enforceAutomountServiceAccountToken.annotations.standard }}"
+    shortName: "{{ .Values.policies.enforceAutomountServiceAccountToken.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksNoAutomountServiceAccountToken
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksnoautomountserviceaccounttoken
+
+        violation[{"msg": msg}] {
+          # Check if automountServiceAccountToken is true or not set (defaults to true)
+          not input.review.object.spec.automountServiceAccountToken == false
+          msg := sprintf("Resource '%s' should have 'automountServiceAccountToken' set to false.", [input.review.object.metadata.name])
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksNoAutomountServiceAccountToken
+metadata:
+  name: enforce-automount-sa-token
+  annotations:
+    description: "{{ .Values.policies.enforceAutomountServiceAccountToken.annotations.description }}"
+    standard: "{{ .Values.policies.enforceAutomountServiceAccountToken.annotations.standard }}"
+    shortName: "{{ .Values.policies.enforceAutomountServiceAccountToken.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    excludedNamespaces:
+      - kube-system
+      - amazon-cloudwatch
+      - gatekeeper-system
+      - amazon-guardduty
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod", "ServiceAccount"]
+{{- end }}

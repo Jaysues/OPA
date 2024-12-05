@@ -1,0 +1,65 @@
+{{- if .Values.policies.preventPrivilegedContainers.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksprivescalationeffect
+  annotations:
+    description: "{{ .Values.policies.preventPrivilegedContainers.annotations.description }}"
+    standard: "{{ .Values.policies.preventPrivilegedContainers.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventPrivilegedContainers.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksPrivEscalationEffect
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksprivescalationeffect
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          container.securityContext.privileged == true
+          msg := sprintf("Container '%s' in Pod '%s' is running as privileged.", [container.name, input.review.object.metadata.name])
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksPrivEscalationEffect
+metadata:
+  name: prevent-privileged-containers
+  annotations:
+    description: "{{ .Values.policies.preventPrivilegedContainers.annotations.description }}"
+    standard: "{{ .Values.policies.preventPrivilegedContainers.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventPrivilegedContainers.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    excludedNamespaces:
+      - kube-system
+      - amazon-cloudwatch
+      - gatekeeper-system
+      - amazon-guardduty
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+{{- end }}

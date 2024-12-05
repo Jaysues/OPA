@@ -1,0 +1,72 @@
+{{- if .Values.policies.preventForbiddenSysctls.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksforbiddensysctleffect
+  annotations:
+    description: "{{ .Values.policies.preventForbiddenSysctls.annotations.description }}"
+    standard: "{{ .Values.policies.preventForbiddenSysctls.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventForbiddenSysctls.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksForbiddenSysCtlEffect
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksforbiddensysctleffect
+
+        violation[{"msg": msg}] {
+          sysctl := input.review.object.spec.securityContext.sysctls[_]
+          forbidden_sysctls := {{ toJson .Values.policies.preventForbiddenSysctls.parameters.forbiddenSysctls }}
+          sysctl_in_forbidden_list(sysctl.name, forbidden_sysctls)
+          msg := sprintf("Sysctl '%s' is forbidden.", [sysctl.name])
+        }
+
+        sysctl_in_forbidden_list(name, forbidden_sysctls) {
+          name == forbidden_sysctls[_]
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksForbiddenSysCtlEffect
+metadata:
+  name: prevent-forbidden-sysctls
+  annotations:
+    description: "{{ .Values.policies.preventForbiddenSysctls.annotations.description }}"
+    standard: "{{ .Values.policies.preventForbiddenSysctls.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventForbiddenSysctls.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    excludedNamespaces:
+      - kube-system
+      - amazon-cloudwatch
+      - gatekeeper-system
+      - amazon-guardduty
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+  parameters:
+    forbiddenSysctls: {{ .Values.policies.preventForbiddenSysctls.parameters.forbiddenSysctls | toJson }}
+{{- end }}

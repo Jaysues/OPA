@@ -1,0 +1,66 @@
+{{- if .Values.policies.enforceNetworkPolicies.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksnetpolenforce
+  annotations:
+    description: "{{ .Values.policies.enforceNetworkPolicies.annotations.description }}"
+    standard: "{{ .Values.policies.enforceNetworkPolicies.annotations.standard }}"
+    shortName: "{{ .Values.policies.enforceNetworkPolicies.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksNetPolEnforce
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksnetpolenforce
+
+        violation[{"msg": msg}] {
+          ns := input.review.object.metadata.name
+          netpols := data.inventory.namespace[ns].networkpolicy
+          count(netpols) == 0
+          msg := sprintf("Namespace '%s' does not have any network policies defined.", [ns])
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksNetPolEnforce
+metadata:
+  name: enforce-network-policies
+  annotations:
+    description: "{{ .Values.policies.enforceNetworkPolicies.annotations.description }}"
+    standard: "{{ .Values.policies.enforceNetworkPolicies.annotations.standard }}"
+    shortName: "{{ .Values.policies.enforceNetworkPolicies.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    excludedNamespaces:
+      - kube-system
+      - amazon-cloudwatch
+      - gatekeeper-system
+      - amazon-guardduty
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Namespace"]
+{{- end }}

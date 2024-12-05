@@ -1,0 +1,36 @@
+{{- if .Values.policies.enforceAllowedCapabilities.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksallowedcapabilitieseffect
+  annotations:
+    description: "{{ .Values.policies.enforceAllowedCapabilities.annotations.description }}"
+    standard: "{{ .Values.policies.enforceAllowedCapabilities.annotations.standard }}"
+    shortName: "{{ .Values.policies.enforceAllowedCapabilities.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksAllowedCapabilitiesEffect
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package eksallowedcapabilitieseffect
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          add_cap := container.securityContext.capabilities.add[_]
+          allowed_caps := {{ toJson .Values.policies.enforceAllowedCapabilities.parameters.allowedCapabilities }}
+          not add_cap in allowed_caps
+          msg := sprintf("Container '%s' in Pod '%s' adds disallowed capability '%s'.", [container.name, input.review.object.metadata.name, add_cap])
+        }
+{{- end }}

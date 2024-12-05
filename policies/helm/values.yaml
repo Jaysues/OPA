@@ -1,0 +1,132 @@
+policies:
+  eksrestrictclusteradmin:
+    enabled: true
+    annotations:
+      description: "Ensure that the cluster-admin role is only used where required."
+      standard: "CIS 4.1.1, 4.1.7"
+      shortName: "RestrictClusterAdmin"
+  ekscontrolsensitivepermission:
+    enabled: true
+    annotations:
+      description: "Control access to sensitive permissions."
+      standard: "CIS 4.1.8"
+      shortName: "ControlSensitivePermission"
+  eksenforcesecretaccess:
+    enabled: true
+    annotations:
+      description: "Ensure that secrets are encrypted at rest."
+      standard: "CIS 4.1.2"
+      shortName: "EnforceSecretAccess"
+  eksnoautomountserviceaccounttoken:
+    enabled: true
+    annotations:
+      description: "Ensure Service Account Tokens are not auto-mounted."
+      standard: "CIS 4.1.6"
+      shortName: "NoAutomountServiceAccountToken"
+  eksrestrictdefaultserviceaccount:
+    enabled: true
+    annotations:
+      description: "Restrict the use of the default service account."
+      standard: "CIS 4.1.5"
+      shortName: "RestrictDefaultServiceAccount"
+  eksnowildcard:
+    enabled: true
+    annotations:
+      description: "Disallow wildcard use in resource policies."
+      standard: "CIS 4.1.3"
+      shortName: "NoWildcard"
+  eksprivescalationceffect:
+    enabled: true
+    annotations:
+      description: "Prevent containers from running as privileged."
+      standard: "CIS 4.2.1"
+      shortName: "PrivEscalationCEffect"
+  ekspsphostnamespace:
+    enabled: true
+    annotations:
+      description: "Prevent pods from sharing the host's namespace."
+      standard: "CIS 4.2.2, 4.2.3, 4.2.4"
+      shortName: "PSPHostNamespace"
+  eksblockprivilegeescalation:
+    enabled: true
+    annotations:
+      description: "Prevent containers from allowing privilege escalation."
+      standard: "CIS 4.5.2, 4.2.5"
+      shortName: "BlockPrivilegeEscalation"
+  ekspsphostfilesystem:
+    enabled: true
+    annotations:
+      description: "Prevent pods from accessing the host filesystem."
+      standard: "CIS 4.5.2"
+      shortName: "PSPHostFilesystem"
+  ekssetsecuritycontext:
+    enabled: true
+    annotations:
+      description: "Ensure security contexts are set on pods and containers."
+      standard: "CIS 4.5.2"
+      shortName: "SetSecurityContext"
+  eksallowedcapabilitieseffect:
+    enabled: true
+    annotations:
+      description: "Restrict capabilities assigned to containers."
+      standard: "CIS 4.5.2"
+      shortName: "AllowedCapabilitiesEffect"
+  eksforbiddensysctleffect:
+    enabled: true
+    annotations:
+      description: "Disallow the use of forbidden sysctls."
+      standard: "CIS 4.5.2"
+      shortName: "ForbiddenSysctlEffect"
+  eksreadonlyfilesystem:
+    enabled: true
+    annotations:
+      description: "Enforce read-only root filesystem."
+      standard: "CIS 4.5.2"
+      shortName: "ReadOnlyFilesystem"
+  eksresourcelimits:
+    enabled: true
+    annotations:
+      description: "Enforce resource limits on containers."
+      standard: "CIS 4.5.2"
+      shortName: "ResourceLimits"
+  ekscontainersprobeeffect:
+    enabled: true
+    annotations:
+      description: "Ensure containers have liveness and readiness probes."
+      standard: "CIS 4.5.2"
+      shortName: "ContainersProbeEffect"
+  eksblockdefaultnamespace:
+    enabled: true
+    annotations:
+      description: "Prevent usage of the default namespace."
+      standard: "CIS 4.5.3"
+      shortName: "BlockDefaultNamespace"
+  eksmountedsecrets:
+    enabled: true
+    annotations:
+      description: "Ensure secrets are not mounted as volumes."
+      standard: "CIS 4.4.1"
+      shortName: "MountedSecrets"
+  eksnetpolenforce:
+    enabled: true
+    annotations:
+      description: "Enforce network policies."
+      standard: "CIS 4.3.2, 5.4.4"
+      shortName: "NetPolEnforce"
+  eksallowedimageseffect:
+    enabled: true
+    annotations:
+      description: "Restrict allowed container images."
+      standard: "CIS 5.1.4"
+      shortName: "AllowedImagesEffect"
+global:
+  annotations:
+    app_id: "YourAppID"
+    risk_type: "Security"
+    risk_classification: "High"
+    snow_id: "SNOW123456"
+    exception_register: "Register123"
+    exception_id: "ExceptionID123"
+    exemption_reason: "Approved for specific use case"
+    exemption_tenant: "Tenant123"
+    exemption_infra_env: "InfraEnv123"

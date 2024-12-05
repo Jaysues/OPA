@@ -1,0 +1,66 @@
+{{- if .Values.policies.preventSensitiveRbacVerbs.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: ekscontrolsensitivepermissions
+  annotations:
+    description: "{{ .Values.policies.preventSensitiveRbacVerbs.annotations.description }}"
+    standard: "{{ .Values.policies.preventSensitiveRbacVerbs.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventSensitiveRbacVerbs.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksControlSensitivePermissions
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ekscontrolsensitivepermissions
+
+        violation[{"msg": msg}] {
+          verb := input.review.object.rules[_].verbs[_]
+          sensitive_verbs := ["bind", "impersonate", "escalate"]
+          verb == sensitive_verbs[_]
+          msg := sprintf("Role '%s' uses sensitive verb '%s'.", [input.review.object.metadata.name, verb])
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksControlSensitivePermissions
+metadata:
+  name: prevent-sensitive-rbac-verbs
+  annotations:
+    description: "{{ .Values.policies.preventSensitiveRbacVerbs.annotations.description }}"
+    standard: "{{ .Values.policies.preventSensitiveRbacVerbs.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventSensitiveRbacVerbs.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    excludedNamespaces:
+      - kube-system
+      - amazon-cloudwatch
+      - gatekeeper-system
+      - amazon-guardduty
+    kinds:
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        kinds: ["Role", "ClusterRole"]
+{{- end }}

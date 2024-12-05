@@ -1,0 +1,60 @@
+{{- if .Values.policies.enforceSecurityContext.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: ekssetsecuritycontext
+  annotations:
+    description: "{{ .Values.policies.enforceSecurityContext.annotations.description }}"
+    standard: "{{ .Values.policies.enforceSecurityContext.annotations.standard }}"
+    shortName: "{{ .Values.policies.enforceSecurityContext.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksSetSecurityContext
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ekssetsecuritycontext
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.securityContext
+          msg := sprintf("Container '%s' in Pod '%s' does not have a security context defined.", [container.name, input.review.object.metadata.name])
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksSetSecurityContext
+metadata:
+  name: enforce-security-context
+  annotations:
+    description: "{{ .Values.policies.enforceSecurityContext.annotations.description }}"
+    standard: "{{ .Values.policies.enforceSecurityContext.annotations.standard }}"
+    shortName: "{{ .Values.policies.enforceSecurityContext.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+{{- end }}

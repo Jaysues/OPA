@@ -1,0 +1,69 @@
+{{- if .Values.policies.restrictHostNamespaces.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: ekspsphostnamespace
+  annotations:
+    description: "{{ .Values.policies.restrictHostNamespaces.annotations.description }}"
+    standard: "{{ .Values.policies.restrictHostNamespaces.annotations.standard }}"
+    shortName: "{{ .Values.policies.restrictHostNamespaces.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksPspHostNamespace
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ekspsphostnamespace
+
+        violation[{"msg": msg}] {
+          host_network := input.review.object.spec.hostNetwork
+          host_pid := input.review.object.spec.hostPID
+          host_ipc := input.review.object.spec.hostIPC
+
+          (host_network == true) or (host_pid == true) or (host_ipc == true)
+
+          msg := sprintf("Pod '%s' shares host namespaces.", [input.review.object.metadata.name])
+        }
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksPspHostNamespace
+metadata:
+  name: restrict-host-namespaces
+  annotations:
+    description: "{{ .Values.policies.restrictHostNamespaces.annotations.description }}"
+    standard: "{{ .Values.policies.restrictHostNamespaces.annotations.standard }}"
+    shortName: "{{ .Values.policies.restrictHostNamespaces.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    excludedNamespaces:
+      - kube-system
+      - amazon-cloudwatch
+      - gatekeeper-system
+      - amazon-guardduty
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+{{- end }}
