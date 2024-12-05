@@ -24,24 +24,39 @@ spec:
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
-        package eksrestrictclusteradmin
+        package restrict_cluster_admin_binding
 
         violation[{"msg": msg}] {
+          input.review.kind.kind == "RoleBinding" or input.review.kind.kind == "ClusterRoleBinding"
+
           binding := input.review.object
-          roleRef := binding.roleRef
-          roleRef.kind == "ClusterRole"
-          roleRef.name == "cluster-admin"
+          resource_name := binding.metadata.name
 
-          allowed_subjects := {{ toJson .Values.policies.restrictClusterAdminBinding.parameters.allowedSubjects }}
-          not subject_in_allowed_list(binding.subjects, allowed_subjects)
+          # Exclude specific bindings
+          not is_excluded_binding(resource_name)
 
-          msg := sprintf("Binding '%s' binds 'cluster-admin' to unauthorized subjects.", [binding.metadata.name])
+          binding.roleRef.kind == "ClusterRole"
+          binding.roleRef.name == "cluster-admin"
+
+          msg := sprintf("Binding '%s' should not use the cluster-admin role.", [resource_name])
         }
 
-        subject_in_allowed_list(subjects, allowed_subjects) {
-          subject := subjects[_]
-          subject.name == allowed_subjects[_]
+        # Function to determine if a binding should be excluded
+        is_excluded_binding(name) {
+          name_in_excluded_names(name) or name_matches_excluded_patterns(name)
         }
+
+        name_in_excluded_names(name) {
+          excluded_names := ["admin", "system:aggregate-to-edit", "system:controller:clusterrole-aggregation-controller", "eks:addon-manager", "gatekeeper-manager-role"]
+          name == excluded_names[_]
+        }
+
+        name_matches_excluded_patterns(name) {
+          excluded_patterns := ["^system:.*", "^eks.*"]
+          pattern := excluded_patterns[_]
+          regex.match(pattern, name)
+        }
+
 
 ---
 

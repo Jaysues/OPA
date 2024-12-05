@@ -1,0 +1,95 @@
+{{- if .Values.policies.preventRbacWildcards.enabled }}
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: eksnowildcards
+  annotations:
+    description: "{{ .Values.policies.preventRbacWildcards.annotations.description }}"
+    standard: "{{ .Values.policies.preventRbacWildcards.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventRbacWildcards.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  crd:
+    spec:
+      names:
+        kind: EksNoWildcards
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package prevent_rbac_wildcards
+
+        violation[{"msg": msg}] {
+          input.review.kind.kind == "ClusterRole" or input.review.kind.kind == "Role"
+
+          role := input.review.object
+          resource_name := role.metadata.name
+
+          # Exclude specific roles
+          not is_excluded_role(resource_name)
+
+          # Check for wildcards in resources, verbs, or apiGroups
+          rule := role.rules[_]
+
+          rule.resources[_] == "*" or
+          rule.verbs[_] == "*" or
+          rule.apiGroups[_] == "*"
+
+          msg := sprintf("Role '%s' should not contain wildcards in resources, verbs, or apiGroups.", [resource_name])
+        }
+
+        # Function to determine if a role should be excluded
+        is_excluded_role(name) {
+          name_in_excluded_names(name) or name_matches_excluded_patterns(name)
+        }
+
+        name_in_excluded_names(name) {
+          excluded_names := ["admin", "system:aggregate-to-edit", "system:controller:clusterrole-aggregation-controller", "eks:addon-manager", "gatekeeper-manager-role"]
+          name == excluded_names[_]
+        }
+
+        name_matches_excluded_patterns(name) {
+          excluded_patterns := ["^system:.*", "^eks.*"]
+          pattern := excluded_patterns[_]
+          regex.match(pattern, name)
+        }
+
+
+---
+
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: EksNoWildcards
+metadata:
+  name: prevent-rbac-wildcards
+  annotations:
+    description: "{{ .Values.policies.preventRbacWildcards.annotations.description }}"
+    standard: "{{ .Values.policies.preventRbacWildcards.annotations.standard }}"
+    shortName: "{{ .Values.policies.preventRbacWildcards.annotations.shortName }}"
+    app_id: "{{ .Values.global.annotations.app_id }}"
+    risk_type: "{{ .Values.global.annotations.risk_type }}"
+    risk_classification: "{{ .Values.global.annotations.risk_classification }}"
+    snow_id: "{{ .Values.global.annotations.snow_id }}"
+    exception_register: "{{ .Values.global.annotations.exception_register }}"
+    exception_id: "{{ .Values.global.annotations.exception_id }}"
+    exemption_reason: "{{ .Values.global.annotations.exemption_reason }}"
+    exemption_tenant: "{{ .Values.global.annotations.exemption_tenant }}"
+    exemption_infra_env: "{{ .Values.global.annotations.exemption_infra_env }}"
+spec:
+  enforcementAction: {{ if eq .Values.infra_env "dev" }}"dryrun"{{ else }}"deny"{{ end }}
+  match:
+    excludedNamespaces:
+      - kube-system
+      - amazon-cloudwatch
+      - gatekeeper-system
+      - amazon-guardduty
+    kinds:
+      - apiGroups: ["rbac.authorization.k8s.io"]
+        kinds: ["Role", "ClusterRole"]
+{{- end }}

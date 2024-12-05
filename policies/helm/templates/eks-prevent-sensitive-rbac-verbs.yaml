@@ -24,14 +24,44 @@ spec:
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
-        package ekscontrolsensitivepermissions
+          package prevent_sensitive_rbac_verbs
 
-        violation[{"msg": msg}] {
-          verb := input.review.object.rules[_].verbs[_]
-          sensitive_verbs := ["bind", "impersonate", "escalate"]
-          verb == sensitive_verbs[_]
-          msg := sprintf("Role '%s' uses sensitive verb '%s'.", [input.review.object.metadata.name, verb])
-        }
+          violation[{"msg": msg}] {
+            input.review.kind.kind == "ClusterRole" or input.review.kind.kind == "Role"
+
+            role := input.review.object
+            resource_name := role.metadata.name
+
+            # Exclude specific roles
+            not is_excluded_role(resource_name)
+
+            # List of sensitive verbs
+            sensitive_verbs := ["*", "create", "update", "delete", "patch", "escalate", "bind", "impersonate"]
+
+            # Check if the role contains sensitive verbs
+            rule := role.rules[_]
+            verb := rule.verbs[_]
+            verb == sensitive_verbs[_]
+
+            msg := sprintf("Role '%s' contains sensitive verbs.", [resource_name])
+          }
+
+          # Function to determine if a role should be excluded
+          is_excluded_role(name) {
+            name_in_excluded_names(name) or name_matches_excluded_patterns(name)
+          }
+
+          name_in_excluded_names(name) {
+            excluded_names := ["admin", "system:aggregate-to-edit", "system:controller:clusterrole-aggregation-controller", "eks:addon-manager", "gatekeeper-manager-role"]
+            name == excluded_names[_]
+          }
+
+          name_matches_excluded_patterns(name) {
+            excluded_patterns := ["^system:.*", "^eks.*"]
+            pattern := excluded_patterns[_]
+            regex.match(pattern, name)
+          }
+
 
 ---
 
