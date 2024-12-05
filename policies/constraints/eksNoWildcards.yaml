@@ -1,10 +1,22 @@
 apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: EksNoWildcards
+kind: PreventRbacWildcards
 metadata:
   name: prevent-rbac-wildcards
 spec:
-  enforcementAction: dryrun
+  enforcementAction: deny
   match:
     kinds:
       - apiGroups: ["rbac.authorization.k8s.io"]
         kinds: ["Role", "ClusterRole"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    excludedRoles:
+      - "admin"
+      - "system:aggregate-to-edit"
+      - "system:controller:clusterrole-aggregation-controller"
+      - "eks:addon-manager"
+      - "gatekeeper-manager-role"
+      - "system:*"
+      - "eks:*"

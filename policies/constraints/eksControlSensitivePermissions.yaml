@@ -1,5 +1,5 @@
 apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: EksControlSensitivePermissions
+kind: PreventSensitiveRbacVerbs
 metadata:
   name: prevent-sensitive-rbac-verbs
 spec:
@@ -8,3 +8,15 @@ spec:
     kinds:
       - apiGroups: ["rbac.authorization.k8s.io"]
         kinds: ["Role", "ClusterRole"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    excludedRoles:
+      - "admin"
+      - "system:aggregate-to-edit"
+      - "system:controller:clusterrole-aggregation-controller"
+      - "eks:addon-manager"
+      - "gatekeeper-manager-role"
+      - "system:*"
+      - "eks:*"

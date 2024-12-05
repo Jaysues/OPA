@@ -1,14 +1,1 @@
-apiVersion: constraints.gatekeeper.sh/v1beta1
-kind: EksAllowedImagesEffect
-metadata:
-  name: enforce-approved-registries
-spec:
-  enforcementAction: dryrun
-  parameters:
-    allowedRegistries:
-      - "myregistry.example.com"
-      - "123456789012.dkr.ecr.us-west-2.amazonaws.com"
-  match:
-    kinds:
-      - apiGroups: [""]
-        kinds: ["Pod"]
+

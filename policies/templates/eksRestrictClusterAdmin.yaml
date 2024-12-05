@@ -1,25 +1,49 @@
 apiVersion: templates.gatekeeper.sh/v1beta1
 kind: ConstraintTemplate
 metadata:
-  name: eksrestrictclusteradmin
+  name: restrictclusteradminbinding
 spec:
   crd:
     spec:
       names:
-        kind: EksRestrictClusterAdmin
+        kind: RestrictClusterAdminBinding
+      validation:
+        openAPIV3Schema:
+          properties:
+            excludedBindings:
+              type: array
+              items:
+                type: string
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
-        package eksrestrictclusteradmin
+        package restrictclusteradminbinding
 
         violation[{"msg": msg}] {
-          input.review.object.roleRef.name == "cluster-admin"
-          subject := input.review.object.subjects[_].name
-          not subject_in_allowed(subject)
-          msg := sprintf("ClusterRoleBinding '%s' grants 'cluster-admin' to unauthorized subject '%s'.", [input.review.object.metadata.name, subject])
+          input.review.kind.kind == "RoleBinding" or input.review.kind.kind == "ClusterRoleBinding"
+
+          binding := input.review.object
+          resource_name := binding.metadata.name
+
+          # Exclude specific bindings
+          not is_excluded_binding(resource_name)
+
+          binding.roleRef.kind == "ClusterRole"
+          binding.roleRef.name == "cluster-admin"
+
+          msg := sprintf("Binding '%s' should not use the cluster-admin role.", [resource_name])
         }
 
-        subject_in_allowed(subject) {
-          subject == input.parameters.allowedSubjects[_]
+        is_excluded_binding(name) {
+          excluded_bindings := input.parameters.excludedBindings
+          some excluded
+          excluded := excluded_bindings[_]
+          name_matches_pattern(name, excluded)
         }
 
+        name_matches_pattern(name, pattern) {
+          contains(pattern, "*")
+          regex_pattern := glob.match(pattern, [], name)
+        } else {
+          name == pattern
+        }

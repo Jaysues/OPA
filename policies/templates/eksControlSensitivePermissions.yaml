@@ -1,21 +1,56 @@
 apiVersion: templates.gatekeeper.sh/v1beta1
 kind: ConstraintTemplate
 metadata:
-  name: ekscontrolsensitivepermissions
+  name: preventsensitiverbacverbs
 spec:
   crd:
     spec:
       names:
-        kind: EksControlSensitivePermissions
+        kind: PreventSensitiveRbacVerbs
+      validation:
+        openAPIV3Schema:
+          properties:
+            excludedRoles:
+              type: array
+              items:
+                type: string
   targets:
     - target: admission.k8s.gatekeeper.sh
       rego: |
-        package ekscontrolsensitivepermissions
+        package preventsensitiverbacverbs
 
         violation[{"msg": msg}] {
-          rule := input.review.object.rules[_]
-          verb := ["bind", "impersonate", "escalate"][_]
-          verb_in_rule := rule.verbs[_] == verb
-          verb_in_rule
-          msg := sprintf("Role '%s' uses sensitive verb '%s'.", [input.review.object.metadata.name, verb])
+          input.review.kind.kind == "ClusterRole" or input.review.kind.kind == "Role"
+
+          role := input.review.object
+          resource_name := role.metadata.name
+
+          # Exclude specific roles
+          not is_excluded_role(resource_name)
+
+          # List of sensitive verbs
+          sensitive_verbs := ["*", "create", "update", "delete", "patch", "escalate", "bind", "impersonate"]
+
+          # Check if the role contains sensitive verbs
+          rule := role.rules[_]
+          verb := rule.verbs[_]
+          verb == sensitive_verbs[_]
+
+          msg := sprintf("Role '%s' contains sensitive verbs.", [resource_name])
+        }
+
+        # Function to check if a role is excluded
+        is_excluded_role(name) {
+          excluded_roles := input.parameters.excludedRoles
+          some excluded
+          excluded := excluded_roles[_]
+          name_matches_pattern(name, excluded)
+        }
+
+        # Function to match name with pattern
+        name_matches_pattern(name, pattern) {
+          contains(pattern, "*")
+          regex_pattern := glob.match(pattern, [], name)
+        } else {
+          name == pattern
         }
